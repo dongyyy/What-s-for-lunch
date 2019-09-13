@@ -13,6 +13,9 @@ import androidx.core.view.GravityCompat
 import androidx.drawerlayout.widget.DrawerLayout
 import androidx.recyclerview.widget.DefaultItemAnimator
 import androidx.recyclerview.widget.DiffUtil
+import com.dongy.w4l.CardView.CardStackAdapter
+import com.dongy.w4l.Retrofit2.GitHubService
+import com.dongy.w4l.Retrofit2.Spots
 import com.yuyakaido.android.cardstackview.*
 import com.yuyakaido.android.cardstackview.sample.Spot
 import com.yuyakaido.android.cardstackview.sample.SpotDiffCallback
@@ -28,30 +31,54 @@ class MainActivity : AppCompatActivity() , CardStackListener {
     private val drawerLayout by lazy { findViewById<DrawerLayout>(R.id.drawer_layout) }
     private val cardStackView by lazy { findViewById<CardStackView>(R.id.card_stack_view) }
     private val manager by lazy { CardStackLayoutManager(this, this) }
-    private val adapter by lazy { CardStackAdapter(createSpots()) }
+    private val adapter by lazy { CardStackAdapter() }
+    private var resultList= mutableListOf<Spots.Results>()
+
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
-        setupNavigation()
-        setupCardStackView()
-        setupButton()
 
         val service = Retrofit.Builder()
-            .baseUrl("https://api.github.com/")
+            .baseUrl(resources.getString(R.string.base_url_place))
             .addConverterFactory(GsonConverterFactory.create())
             .build()
             .create(GitHubService::class.java)
 
-        service.retrieveRepositories("Evin1-")
-            .enqueue(object : Callback<List<Repository>> {
-                override fun onResponse(call: Call<List<Repository>>, response: Response<List<Repository>>) {
-                    response.body()?.forEach { println("TAG_: $it") }
+        service.retrievePlaces(
+            "37.602592,126.654335"
+            , "1000"
+            , "restaurant"
+            , "ko"
+            , resources.getString(R.string.goolge_map_key))
+            .enqueue(object : Callback<Spots> {
+                override fun onResponse(call: Call<Spots>, response: Response<Spots>) {
+                    if(response.body()?.status == "OK") {
+                        response.body()?.results?.forEach {
+                            println("TAG_: $it")
+                            resultList.add(it)
+                        }
+
+                        adapter.setSpots((createSpots()))
+                        adapter.notifyDataSetChanged()
+                    }
                 }
 
-                override fun onFailure(call: Call<List<Repository>>, t: Throwable) = t.printStackTrace()
+                override fun onFailure(call: Call<Spots>, t: Throwable) = t.printStackTrace()
             })
+
+        setupNavigation()
+        setupCardStackView()
+        setupButton()
     }
+
+
+//    https://maps.googleapis.com/maps/api/place/nearbysearch/json? 
+//    location= 37.602592,%20126.654335
+//      &radius=1000  
+//    &type=restauran  t
+//    &fields=contact
+//      &key=AIzaSyD3H-668if2DLRN4CGKUFihpPH5Pgrv6_0
 
     override fun onBackPressed() {
         if (drawerLayout.isDrawerOpen(GravityCompat.START)) {
@@ -293,16 +320,24 @@ class MainActivity : AppCompatActivity() , CardStackListener {
 
     private fun createSpots(): List<Spot> {
         val spots = ArrayList<Spot>()
-        spots.add(Spot(name = "Yasaka Shrine", city = "Kyoto", url = "https://source.unsplash.com/Xq1ntWruZQI/600x800"))
-        spots.add(Spot(name = "Fushimi Inari Shrine", city = "Kyoto", url = "https://source.unsplash.com/NYyCqdBOKwc/600x800"))
-        spots.add(Spot(name = "Bamboo Forest", city = "Kyoto", url = "https://source.unsplash.com/buF62ewDLcQ/600x800"))
-        spots.add(Spot(name = "Brooklyn Bridge", city = "New York", url = "https://source.unsplash.com/THozNzxEP3g/600x800"))
-        spots.add(Spot(name = "Empire State Building", city = "New York", url = "https://source.unsplash.com/USrZRcRS2Lw/600x800"))
-        spots.add(Spot(name = "The statue of Liberty", city = "New York", url = "https://source.unsplash.com/PeFk7fzxTdk/600x800"))
-        spots.add(Spot(name = "Louvre Museum", city = "Paris", url = "https://source.unsplash.com/LrMWHKqilUw/600x800"))
-        spots.add(Spot(name = "Eiffel Tower", city = "Paris", url = "https://source.unsplash.com/HN-5Z6AmxrM/600x800"))
-        spots.add(Spot(name = "Big Ben", city = "London", url = "https://source.unsplash.com/CdVAUADdqEc/600x800"))
-        spots.add(Spot(name = "Great Wall of China", city = "China", url = "https://source.unsplash.com/AWh9C-QjhE4/600x800"))
+
+        for (result in resultList) {
+            spots.add(
+                Spot(
+                    name = result.name
+                    , city = result.vicinity
+                    , url = if(result.photos != null)
+                                resources.getString(R.string.base_url_photo)
+                                + "?maxwidth=400" + "&photoreference="
+                                + result.photos[0].photo_reference
+                                + "&key="+resources.getString(R.string.goolge_map_key)
+                            else
+                                "" //기본이미지 넣어주기
+                )
+            )
+        }
+
         return spots
     }
+
 }

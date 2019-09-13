@@ -1,3 +1,6 @@
 <resources>
     <string name="app_name">W4L</string>
+    <string name="goolge_map_key">AIzaSyD3H-668if2DLRN4CGKUFihpPH5Pgrv6_0</string>
+    <string name="base_url_place">https://maps.googleapis.com</string>
+    <string name="base_url_photo">https://maps.googleapis.com/maps/api/place/photo</string>
 </resources>
