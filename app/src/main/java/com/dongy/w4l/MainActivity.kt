@@ -1,5 +1,11 @@
 package com.dongy.w4l
 
+import android.Manifest
+import android.content.Context
+import android.content.pm.PackageManager
+import android.location.Location
+import android.location.LocationListener
+import android.location.LocationManager
 import android.os.Bundle
 import android.util.Log
 import android.view.View
@@ -9,6 +15,8 @@ import android.view.animation.LinearInterpolator
 import android.widget.TextView
 import androidx.appcompat.app.AppCompatActivity
 import androidx.appcompat.widget.Toolbar
+import androidx.core.app.ActivityCompat
+import androidx.core.content.ContextCompat
 import androidx.core.view.GravityCompat
 import androidx.drawerlayout.widget.DrawerLayout
 import androidx.recyclerview.widget.DefaultItemAnimator
@@ -26,6 +34,7 @@ import retrofit2.Retrofit
 import retrofit2.converter.gson.GsonConverterFactory
 import java.util.*
 
+
 class MainActivity : AppCompatActivity() , CardStackListener {
 
     private val drawerLayout by lazy { findViewById<DrawerLayout>(R.id.drawer_layout) }
@@ -33,11 +42,51 @@ class MainActivity : AppCompatActivity() , CardStackListener {
     private val manager by lazy { CardStackLayoutManager(this, this) }
     private val adapter by lazy { CardStackAdapter() }
     private var resultList= mutableListOf<Spots.Results>()
-
+    private var lng : String? = null
+    private var lat : String? = null
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
+
+        setUpPermission()
+        setUpNetworkModule()
+        setupNavigation()
+        setupCardStackView()
+        setupButton()
+    }
+
+    fun setUpPermission(){
+        // Here, thisActivity is the current activity
+        if (ContextCompat.checkSelfPermission(this,
+                Manifest.permission.ACCESS_FINE_LOCATION)
+            != PackageManager.PERMISSION_GRANTED) {
+
+            // Permission is not granted
+            // Should we show an explanation?
+            if (ActivityCompat.shouldShowRequestPermissionRationale(this,
+                    Manifest.permission.ACCESS_FINE_LOCATION)) {
+                // Show an explanation to the user *asynchronously* -- don't block
+                // this thread waiting for the user's response! After the user
+                // sees the explanation, try again to request the permission.
+            } else {
+                // No explanation needed, we can request the permission.
+                ActivityCompat.requestPermissions(this,
+                    arrayOf(Manifest.permission.ACCESS_FINE_LOCATION),
+                    200)
+
+                // MY_PERMISSIONS_REQUEST_READ_CONTACTS is an
+                // app-defined int constant. The callback method gets the
+                // result of the request.
+
+            }
+        } else {
+            // Permission has already been granted
+            setupLocationInfoModule()
+        }
+    }
+
+    fun setUpNetworkModule(){
 
         val service = Retrofit.Builder()
             .baseUrl(resources.getString(R.string.base_url_place))
@@ -46,8 +95,8 @@ class MainActivity : AppCompatActivity() , CardStackListener {
             .create(GitHubService::class.java)
 
         service.retrievePlaces(
-            "37.602592,126.654335"
-            , "1000"
+            lat+","+lng
+            , "10000"
             , "restaurant"
             , "ko"
             , resources.getString(R.string.goolge_map_key))
@@ -66,12 +115,81 @@ class MainActivity : AppCompatActivity() , CardStackListener {
 
                 override fun onFailure(call: Call<Spots>, t: Throwable) = t.printStackTrace()
             })
-
-        setupNavigation()
-        setupCardStackView()
-        setupButton()
     }
 
+    fun setupLocationInfoModule(){
+        // Acquire a reference to the system Location Manager
+        val locationManager = this.getSystemService(Context.LOCATION_SERVICE) as LocationManager
+        // GPS 프로바이더 사용가능여부
+        val isGPSEnabled = locationManager.isProviderEnabled(LocationManager.GPS_PROVIDER)
+        // 네트워크 프로바이더 사용가능여부
+//        val isNetworkEnabled = locationManager.isProviderEnabled(LocationManager.NETWORK_PROVIDER)
+
+        Log.d("Main", "isGPSEnabled=$isGPSEnabled")
+//        Log.d("Main", "isNetworkEnabled=$isNetworkEnabled")
+
+        val locationListener = object : LocationListener {
+            override fun onLocationChanged(location: Location) {
+                val lat = location.getLatitude()
+                val lng = location.getLongitude()
+
+                Log.d("latitude:", lat.toString())
+                Log.d("longitude:", lng.toString())
+            }
+
+            override fun onStatusChanged(provider: String, status: Int, extras: Bundle) {
+//                logView.setText("onStatusChanged")
+            }
+
+            override fun onProviderEnabled(provider: String) {
+//                logView.setText("onProviderEnabled")
+            }
+
+            override fun onProviderDisabled(provider: String) {
+//                logView.setText("onProviderDisabled")
+            }
+        }
+
+        if (ContextCompat.checkSelfPermission(this,
+                Manifest.permission.ACCESS_FINE_LOCATION)
+            == PackageManager.PERMISSION_GRANTED) {
+            // Register the listener with the Location Manager to receive location updates
+//            locationManager.requestLocationUpdates(LocationManager.NETWORK_PROVIDER, 0, 0f, locationListener)
+            locationManager.requestLocationUpdates(LocationManager.GPS_PROVIDER,0,0f,locationListener)
+        }
+        // 수동으로 위치 구하기
+        val locationProvider = LocationManager.GPS_PROVIDER
+        val lastKnownLocation = locationManager.getLastKnownLocation(locationProvider)
+        if (lastKnownLocation != null) {
+            lng = String.format("%.6f",Math.abs(lastKnownLocation.longitude))
+            lat = String.format("%.6f",Math.abs(lastKnownLocation.latitude))
+            Log.d("Main", "longtitude=$lng, latitude=$lat")
+        }
+    }
+
+    override fun onRequestPermissionsResult(requestCode: Int,
+                                            permissions: Array<String>, grantResults: IntArray) {
+        when (requestCode) {
+//            MY_PERMISSIONS_REQUEST_READ_CONTACTS -> {
+            200 -> {
+                // If request is cancelled, the result arrays are empty.
+                if ((grantResults.isNotEmpty() && grantResults[0] == PackageManager.PERMISSION_GRANTED)) {
+                    // permission was granted, yay! Do the
+                    // contacts-related task you need to do.
+                } else {
+                    // permission denied, boo! Disable the
+                    // functionality that depends on this permission.
+                }
+                return
+            }
+
+            // Add other 'when' lines to check for other
+            // permissions this app might request.
+            else -> {
+                // Ignore all other requests.
+            }
+        }
+    }
 
 //    https://maps.googleapis.com/maps/api/place/nearbysearch/json? 
 //    location= 37.602592,%20126.654335
