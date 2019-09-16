@@ -1,0 +1,40 @@
+{
+  "project_info": {
+    "project_number": "159802763894",
+    "firebase_url": "https://what4food-1568289988454.firebaseio.com",
+    "project_id": "what4food-1568289988454",
+    "storage_bucket": "what4food-1568289988454.appspot.com"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:159802763894:android:67d29b218a2b7db5644d57",
+        "android_client_info": {
+          "package_name": "com.dongy.w4l"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "159802763894-6mhive9cspddnlnh0lsr9joake6i3kn1.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDRd_MjEakHAfXH6fDfNgr8mOvR2VCk7x4"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "159802763894-6mhive9cspddnlnh0lsr9joake6i3kn1.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
